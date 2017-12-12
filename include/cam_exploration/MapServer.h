@@ -243,15 +243,15 @@ private:
     static FrontiersMap fmap;
 
     /**
-     * @brief Tells wether a new map has been received and not yet handled
+     * @brief Tells whether a new map has been received and not yet handled
      */
     static bool map_received;
     /**
-     * @brief Tells wether the server has already subscribed to the map
+     * @brief Tells whether the server has already subscribed to the map
      */
     static bool is_subscribed;
     /**
-     * @brief Function callback tu update the frontiers map
+     * @brief Function callback to update the frontiers map
      */
     void (*functionCallback)(FrontiersMap&);
 

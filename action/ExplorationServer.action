@@ -1,0 +1,12 @@
+# Goal definition
+bool ExplorationGoal
+string Condition
+---
+# Result definition
+bool Achieved
+duration ElapsedTime
+int32 DistanceCovered
+---
+# Feedback
+duration ElapsedTime
+int32 DistanceToGoal

@@ -28,9 +28,9 @@ namespace cam_exploration {
 /**
  * @brief Object handling the robot motion.
  *
- * It interfaces with the move_base node and provides a simple interface for managing goals and geting information regarding the robot status
+ * It interfaces with the move_base node and provides a simple interface for managing goals and getting information regarding the robot status
  *
- * Exaples:
+ * Examples:
  *
  * 1) Sending a goal to the robot:
  * @code
@@ -58,7 +58,7 @@ public:
     RobotMotion() { initialised = false;}	///< Constructor. To be able to use this object, init() should be called once the caller has initialized the ros node
     void init();				///< Initial routine. Should be called once the caller node is initialised
 
-    // Posse information
+    // Pose information
     static geometry_msgs::Pose pose() {return robot_pose;} 		 ///< Get robot pose @return Robot pose
     static geometry_msgs::Point position() {return robot_pose.position;} ///< Get robot position @return robot position
 
