@@ -66,7 +66,7 @@ geometry_msgs::Pose decideGoal()
     while(!goal_selector->decideGoal(*f_it, goal)){
         f_it++;
     }
-
+//TODO: CHECK IF IT IS POSSIBLE THAT THERE IS NO GOAL AT THE END OF THE WHILE...
     MarkerPublisher markers;
     markers.publish("f_goal", f_it->points);
     markers.publish("goal", goal);
@@ -89,16 +89,28 @@ float getDistance2D(geometry_msgs::Point init_p, geometry_msgs::Point final_p)
 {
   return sqrt(pow(final_p.x - init_p.x, 2) + pow(final_p.y - init_p.y, 2));
 }
+/**/
+cam_exploration::ExplorationServerResult setResult(bool achieved, float dist, ros::Duration time)
+{
+  cam_exploration::ExplorationServerResult result;
+  result.Achieved = achieved;
+  result.DistanceCovered = static_cast<int>(dist);
+  result.ElapsedTime = time;
+  return result;
+}
 
 /**
  * @brief Node's main loop
  */
 void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, ActionServer* as_)
 {
+    string node_ns = ros::this_node::getNamespace();
+    string node_name = ros::this_node::getName();
+    string node_id = node_ns + node_name;
     if(goal->ExplorationGoal){
       as_->acceptNewGoal();
     } else {
-      ROS_WARN("Goal not accepted.");
+      ROS_WARN("[%s]: Goal not accepted.", node_id.c_str());
       return;
     }
 
@@ -129,12 +141,12 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
     for(vector<string>::iterator it = replan_conditions.begin(); it != replan_conditions.end(); ++it){
         map<string, string> parameters;
 
-        ROS_INFO("processing %s", it->c_str());
+        ROS_INFO("[%s]: Processing %s", node_id.c_str(), it->c_str());
         if (n_replan.getParam(it->c_str(), parameters)){
             replaner.addCause(it->c_str(), parameters);
         }
         else{
-            ROS_INFO("No parameters found for replaning cause %s", it->c_str());
+            ROS_INFO("[%s]: No parameters found for replaning cause %s", node_id.c_str(), it->c_str());
             replaner.addCause(it->c_str());
         }
     }
@@ -148,11 +160,11 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
             goal_selector = new midPoint();
         }
         else{
-            ROS_ERROR("String %s does not name a valid goal selector", g_selector_name.c_str());
+            ROS_ERROR("[%s]: String %s does not name a valid goal selector", node_id.c_str(), g_selector_name.c_str());
         }
     }
     else
-        ROS_ERROR("Parameter goal_selector has not been configured");
+        ROS_ERROR("[%s]: Parameter goal_selector has not been configured", node_id.c_str());
 
 
 
@@ -176,7 +188,7 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
     if(mapServer.mapReceived())
     {
       mapServer.setMapReceived();
-      ROS_INFO_ONCE("First map received!");
+      ROS_INFO_ONCE("[%s]: First map received!", node_id.c_str());
 
           if(robot.refreshPose())
           {
@@ -185,71 +197,67 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
                   if (first_time)
                       first_time = false;
 
+                  // TODO: How to check is a valid frontier is available...
                   robot.printStatus();
-                  robot.goTo(decideGoal());
-
-                  geometry_msgs::Point current_goal = robot.current_frontier_target_point();
-                  geometry_msgs::Point initial_robot_position = robot.position();
-                  ros::Time initial_time = ros::Time::now();
-                  ros::Duration elapsed_time;
-                  float distance_covered = 0;
-                  float distance_to_goal = 0;
-
-                  cam_exploration::ExplorationServerResult result;
-
-                  ros::Rate loop_rate(1);
-                  while(robot.status() == robot.MOVING)
+                  if (robot.goTo(decideGoal())) // If the move_base goal is not correctly send, abort.
                   {
-                    if(robot.refreshPose())
+                    geometry_msgs::Point current_goal = robot.current_frontier_target_point();
+                    geometry_msgs::Point initial_robot_position = robot.position();
+                    ros::Time initial_time = ros::Time::now();
+                    ros::Duration elapsed_time;
+                    float distance_covered = 0;
+                    float distance_to_goal = 0;
+
+                    cam_exploration::ExplorationServerResult result;
+
+                    ros::Rate loop_rate(1);
+                    while(robot.status() == robot.MOVING)
                     {
-                      elapsed_time = ros::Time::now() - initial_time;
-                      distance_covered = cam_exploration::getDistance2D(initial_robot_position, robot.position());
-                      distance_to_goal = cam_exploration::getDistance2D(robot.position(), current_goal);
-                      cam_exploration::ExplorationServerFeedback feedback_;
-                      feedback_.DistanceToGoal = distance_to_goal;
-                      feedback_.ElapsedTime = elapsed_time;
-                      as_->publishFeedback(feedback_);
+                        if(robot.refreshPose())
+                        {
+                            elapsed_time = ros::Time::now() - initial_time;
+                            distance_covered = cam_exploration::getDistance2D(initial_robot_position, robot.position());
+                            distance_to_goal = cam_exploration::getDistance2D(robot.position(), current_goal);
+                            cam_exploration::ExplorationServerFeedback feedback_;
+                            feedback_.DistanceToGoal = distance_to_goal;
+                            feedback_.ElapsedTime = elapsed_time;
+                            as_->publishFeedback(feedback_);
+                        }
+                        if(as_->isPreemptRequested())
+                        {
+                            robot.cancelGoal();
+                            as_->setPreempted(setResult(false, distance_covered, elapsed_time), "Action Preempted");
+                            ROS_WARN("[%s]: Preempt action is requested. Exploration finished", node_id.c_str());
+                        }
+                        loop_rate.sleep();
                     }
-                    if(as_->isPreemptRequested())
+
+                    // Check how to get the output of movebase...
+                    if(robot.status() == robot.SUCCEEDED)
                     {
-                      robot.cancelGoal();
-                      result.Achieved = false;
-                      result.DistanceCovered = static_cast<int>(distance_covered);
-                      result.ElapsedTime = elapsed_time;
-                      as_->setPreempted(result, "Action Preempted");
-                      ROS_WARN("Preempt action is requested. Exploration finished");
+                      as_->setSucceeded(setResult(true, distance_covered, elapsed_time), "Action Completed");
+                    } else if (robot.status() == robot.ERROR)
+                    {
+                      as_->setAborted(setResult(false, distance_covered, elapsed_time), "Action Aborted");
+                    } else
+                    {
+                      ROS_WARN("[%s]: Exploration loop finished without proper condition.", node_id.c_str());
+                      as_->setAborted(setResult(false, distance_covered, elapsed_time), "Action Aborted");
                     }
-                    loop_rate.sleep();
+
+                  }else
+                  {
+                      ros::Duration no_time = ros::Time::now() - ros::Time::now();
+                      as_->setAborted(setResult(false, 0.0, no_time), "Action Aborted");
                   }
 
-                  // Check how to get the output of movebase...
-                  if(robot.status() == robot.SUCCEEDED)
-                  {
-                    result.Achieved = true;
-                    result.DistanceCovered = static_cast<int>(distance_covered);
-                    result.ElapsedTime = elapsed_time;
-                    as_->setSucceeded(result, "Action Completed");
-                  } else if (robot.status() == robot.ERROR)
-                  {
-                    result.Achieved = false;
-                    result.DistanceCovered = static_cast<int>(distance_covered);
-                    result.ElapsedTime = elapsed_time;
-                    as_->setAborted(result, "Action Aborted");
-                  } else
-                  {
-                    ROS_WARN("Exploration loop finished without proper condition.");
-                    result.Achieved = false;
-                    result.DistanceCovered = static_cast<int>(distance_covered);
-                    result.ElapsedTime = elapsed_time;
-                    as_->setAborted(result, "Action Aborted");
-                  }
               }
           }
           else
-            ROS_WARN("Couldn't get robot position!");
+            ROS_WARN("[%s]: Couldn't get robot position!", node_id.c_str());
     }
     else
-        ROS_INFO_ONCE("Waiting for first map");
+        ROS_INFO_ONCE("[%s]: Waiting for first map", node_id.c_str());
 }
 
 
@@ -262,9 +270,14 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
  */
 int main(int argc, char** argv)
 {
-    ROS_INFO("Exploration Server");
+
     ros::init(argc, argv, "exploration_server");
     ros::NodeHandle nh_;
+
+    string node_ns = ros::this_node::getNamespace();
+    string node_name = ros::this_node::getName();
+    string node_id = node_ns + node_name;
+    ROS_INFO("[%s]: Exploration Server Starts", node_id.c_str());
 
     cam_exploration::robot.init();
 
