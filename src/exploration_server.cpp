@@ -126,10 +126,10 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
 
 
     // >> Subscribing map server to Map
-    mapServer.subscribeMap("proj_map", getFrontiers, ros::NodeHandlePtr(new ros::NodeHandle()),
+    mapServer.subscribeMap("map", getFrontiers, ros::NodeHandlePtr(new ros::NodeHandle()),
                                 ros::NodeHandlePtr(new ros::NodeHandle("~")));
     // >> Subscribing costmap server to Map
-    mapServer.subscribeCostMap("/move_base/global_costmap/costmap", ros::NodeHandlePtr(new ros::NodeHandle()),
+    mapServer.subscribeCostMap("move_base/global_costmap/costmap", ros::NodeHandlePtr(new ros::NodeHandle()),
                                 ros::NodeHandlePtr(new ros::NodeHandle("~")));
 
     // >> Setting up replaning function

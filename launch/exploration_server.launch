@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+    <rosparam command="load" file="$(find cam_exploration)/config/standard.yaml" />
+    <node name="exploration_server" pkg="cam_exploration" type="cam_exploration" output="screen" />
+</launch>
