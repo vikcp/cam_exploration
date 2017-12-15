@@ -111,6 +111,8 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
       as_->acceptNewGoal();
     } else {
       ROS_WARN("[%s]: Goal not accepted.", node_id.c_str());
+      ros::Duration no_time = ros::Time::now() - ros::Time::now();
+      as_->setAborted(setResult(false, 0.0, no_time), "Action Aborted");
       return;
     }
 
@@ -245,7 +247,8 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
                       as_->setAborted(setResult(false, distance_covered, elapsed_time), "Action Aborted");
                     }
 
-                  }else
+                  }
+                  else
                   {
                       ros::Duration no_time = ros::Time::now() - ros::Time::now();
                       as_->setAborted(setResult(false, 0.0, no_time), "Action Aborted");
@@ -254,10 +257,18 @@ void ExecuteAction(const cam_exploration::ExplorationServerGoalConstPtr goal, Ac
               }
           }
           else
-            ROS_WARN("[%s]: Couldn't get robot position!", node_id.c_str());
+          {
+              ROS_WARN("[%s]: Couldn't get robot position!", node_id.c_str());
+              ros::Duration no_time = ros::Time::now() - ros::Time::now();
+              as_->setAborted(setResult(false, 0.0, no_time), "Action Aborted");
+          }
     }
     else
+    {
         ROS_INFO_ONCE("[%s]: Waiting for first map", node_id.c_str());
+        ros::Duration no_time = ros::Time::now() - ros::Time::now();
+        as_->setAborted(setResult(false, 0.0, no_time), "Action Aborted");
+    }
 }
 
 
