@@ -48,8 +48,10 @@ pub::pub(const char* name, const char* topic, ros::NodeHandle n, int type)
     topic_ = topic;
     n_ = n;
 
+    listener = new tf::TransformListener();
+
     visualization_msgs::Marker m;
-    m.header.frame_id = listener_.resolve("map");
+    m.header.frame_id = listener->resolve("map");
     m.type = type;
     m.scale.x = m.scale.y = m.scale.z = 0.07;
     m.action = visualization_msgs::Marker::ADD;

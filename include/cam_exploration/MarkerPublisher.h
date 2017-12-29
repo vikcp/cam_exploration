@@ -40,6 +40,7 @@
 
 #include "visualization_msgs/Marker.h"
 #include "geometry_msgs/Pose.h"
+#include "tf/transform_listener.h"
 
 namespace cam_exploration {
 
@@ -128,7 +129,7 @@ private:
     ros::NodeHandle n_;			///< NodeHandle to advertise the topic
     visualization_msgs::Marker m_;	///< Base marker message to be publided. Contains the properties to be used
     ros::Publisher p_;			///< Ros publisher to publish the messages
-    tf::TransformListener listener_;
+    tf::TransformListener * listener;                   ///< Transform listener for robot position
 
     /**
      * @brief Advertises the topic
