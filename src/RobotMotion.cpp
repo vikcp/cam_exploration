@@ -55,6 +55,8 @@ void RobotMotion::init()
 	listener = new tf::TransformListener();
 	travelled_distance = 0;
 	start_time = ros::Time::now();
+	map_frame = listener->resolve(map_frame);
+	footprint_frame = listener->resolve(footprint_frame);
     }
     else
     {
@@ -80,7 +82,7 @@ bool RobotMotion::goTo(const geometry_msgs::Pose& goal_pose)
 
     // overwrite the frame_id and stamp
     move_base_msgs::MoveBaseGoal goal;
-    goal.target_pose.header.frame_id = "/map";
+    goal.target_pose.header.frame_id = map_frame;
     goal.target_pose.header.stamp = ros::Time::now();
     goal.target_pose.pose = goal_pose;
 
@@ -129,8 +131,8 @@ bool RobotMotion::refreshRobotPosition()
     static bool first=true;
     tf::StampedTransform transform;
     ros::Time target_time = ros::Time(0); //ros::Time::now();
-    std::string source_frame = "/map";
-    std::string target_frame = "/base_footprint";
+    std::string source_frame = map_frame;
+    std::string target_frame = footprint_frame;
     try
     {
 	if(listener->waitForTransform(source_frame, target_frame, target_time, ros::Duration(5.0)))

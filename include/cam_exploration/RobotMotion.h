@@ -90,6 +90,8 @@ private:
     static geometry_msgs::Pose prev_robot_pose;		///< Previous (in the previous call to refreshRobotPosition() robot position
     static geometry_msgs::Pose current_goal_;		///< Current robot goal
     static geometry_msgs::Point current_frontier_target_point_; ///< Point of the current target frontier chosen as exploration target
+    static std::string map_frame;
+    static std::string footprint_frame;
 
     bool initialised;					///< True if RobotMotion has been initialised
 

@@ -49,7 +49,7 @@ pub::pub(const char* name, const char* topic, ros::NodeHandle n, int type)
     n_ = n;
 
     visualization_msgs::Marker m;
-    m.header.frame_id = "/map";
+    m.header.frame_id = listener_.resolve("map");
     m.type = type;
     m.scale.x = m.scale.y = m.scale.z = 0.07;
     m.action = visualization_msgs::Marker::ADD;

@@ -128,6 +128,7 @@ private:
     ros::NodeHandle n_;			///< NodeHandle to advertise the topic
     visualization_msgs::Marker m_;	///< Base marker message to be publided. Contains the properties to be used
     ros::Publisher p_;			///< Ros publisher to publish the messages
+    tf::TransformListener listener_;
 
     /**
      * @brief Advertises the topic
